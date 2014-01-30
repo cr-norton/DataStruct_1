@@ -1,0 +1,690 @@
+#include <iostream>
+#include <cstdlib>
+#include <iostream>
+#include <sstream>
+#include <math.h> 
+#include <stdio.h>
+#include <cmath>
+#include <fstream>
+#include <cstring>
+#include <iomanip> 
+
+using namespace std;
+
+const int MAX_CHARS_PER_LINE = 512;
+const int MAX_TOKENS_PER_LINE = 20;
+const char* const DELIMITER = " ";
+
+
+
+class Graph{
+	public:
+	
+		class AVLTree {
+	public:
+		class Node {
+			public:
+				int data;
+				int height;
+				Node* parent;
+				Node* left;
+				Node* right;
+
+				Node(int val) {
+					data = val;
+					height = 0;
+					parent = NULL;
+					left = NULL;
+					right = NULL;
+				}
+				
+				int updateHeight() {
+					if(left != NULL && right != NULL)
+					{
+						if(left->height > right->height)
+							height = left->height + 1;
+						else
+							height = right->height + 1;
+					}
+					else if(left != NULL)
+						height = left->height + 1;
+					else if(right != NULL)
+						height = right->height + 1;
+					else
+						height = 0;
+					return height;
+				}
+				
+				int getBalance() {
+					Node* node = this;
+					if(node->left != NULL && node->right != NULL)
+						return node->left->height - node->right->height;
+					else if(node->left != NULL)
+						return node->left->height + 1;
+					else if(node->right != NULL)
+						return (-1) * (node->right->height + 1);
+					else
+						return 0;
+				}
+				
+				void removeParent() {
+					parent = NULL;
+				}
+				
+				Node* setleftChild(Node* new_left) {
+					if(new_left != NULL)
+						new_left->parent = this;
+					left = new_left;
+					updateHeight();
+					return left;
+				}
+				
+				Node* setrightChild(Node* new_right) {
+					if(new_right != NULL)
+						new_right->parent = this;
+					right = new_right;
+					updateHeight();
+					return right;
+				}
+		};
+
+		void setRoot(Node* node) {
+			root = node;
+			if(root != NULL)
+				root->removeParent();
+		}
+
+
+		Node* findNode(int data) {
+			Node* temp = root;
+			while(temp != NULL) {
+				if(data == temp->data)
+					return temp;
+				else if(data < temp->data)
+					temp = temp->left;
+				else
+					temp = temp->right;
+			}
+			return NULL;
+		}
+		
+		void rotateleft(Node* rotate)
+		{
+			Node* r_parent = rotate->parent;
+			string side;
+			if(r_parent != NULL) {
+				if(r_parent->left == rotate)
+					side = "left";
+				else
+					side = "right";
+			}
+			Node* temp = rotate->right;
+			rotate->setrightChild(temp->left);
+			temp->setleftChild(rotate);
+			
+			if(r_parent != NULL) {
+				if(side == "left")
+					r_parent->setleftChild(temp);
+				if(side == "right")
+					r_parent->setrightChild(temp);
+			}
+			else {
+				setRoot(temp);
+			}
+		}
+
+		void rotateright(Node* rotate) {
+			Node* r_parent = rotate->parent;
+			string side;
+			if(r_parent != NULL) {
+				if(r_parent->left == rotate)
+					side = "left";
+				else
+					side = "right";
+			}
+			Node* temp = rotate->left;
+			rotate->setleftChild(temp->right);
+			temp->setrightChild(rotate);
+			if(r_parent != NULL) {
+				if(side == "left")
+					r_parent->setleftChild(temp);
+				if(side == "right")
+					r_parent->setrightChild(temp);
+			}
+			else {
+				setRoot(temp);
+			}
+		}
+
+
+		void balanceAtNode(Node* node) {                       
+			int bal = node->getBalance();
+			if(bal > 1) {
+				if(node->left->getBalance() < 0)
+					rotateleft(node->left);
+				rotateright(node);
+			}
+			else if(bal < -1) {
+			if(node->right->getBalance() > 0)
+				rotateright(node->right);
+			rotateleft(node);
+			}
+		}
+
+		Node* root;
+
+		AVLTree() {
+			root = NULL;
+		}
+
+		AVLTree(int data) {
+			root = new Node(data);
+		}
+
+		bool insert(int data) {
+			Node* new_node;
+			if(root == NULL) {
+				root = new Node(data);
+				return true;
+			}
+			else {
+				Node* temp = root;
+
+				while(true) {
+					if(temp->data > data) {
+						if((temp->left) == 0) {
+							new_node = temp->setleftChild(new Node(data));
+							break;
+						}
+						else {
+							temp = temp->left;
+						}
+					}
+					else if(temp->data < data) {
+						if((temp->right) == 0) {
+							new_node = temp->setrightChild(new Node(data));
+							break;
+						}
+						else {
+							temp = temp->right;
+						}
+					}
+					else {
+						cout << "ELEMENT ALREADY IN TREE" << endl;
+						return false;
+					}
+				}
+
+				temp = new_node;
+				while(temp != NULL) {
+					temp->updateHeight();
+					balanceAtNode(temp);
+					temp = temp->parent;
+				}
+			}
+			cout << "ELEMENT SUCCESSFULLY INESRTED" << endl;
+		}
+
+		bool remove(int data) {
+			if(root == NULL)
+				return false;
+				
+			Node *replacement, *replacement_parent, *temp_node;
+			Node * to_be_removed = findNode(data); 
+			
+			if(to_be_removed == NULL) {
+				cout << "ELEMENT NOT FOUND" << endl;
+				return false;
+			}
+
+			Node *p = to_be_removed->parent;
+			enum {left, right} side;
+			
+			if(p != NULL) {
+				if(p->left == to_be_removed)
+					side = left;
+				else
+					side = right;
+			}
+
+			int bal = to_be_removed->getBalance();
+
+			if(to_be_removed->left == NULL && to_be_removed->right == NULL) {
+				if(p != NULL) {
+					if(side == left)
+						p->setleftChild((Node*)0);
+					else
+						p->setrightChild((Node*)0);
+
+					delete to_be_removed;
+					p->updateHeight();
+					balanceAtNode(p);
+				}
+				else {
+					setRoot((Node*)0);
+					delete to_be_removed;
+				}
+
+			}
+			else if(to_be_removed->right == NULL) {
+				if(p != NULL) {
+					if(side == left)
+						p->setleftChild(to_be_removed->left);
+					else
+						p->setrightChild(to_be_removed->left);
+
+					delete to_be_removed;
+					p->updateHeight();
+					balanceAtNode(p);
+				}
+				else {
+					setRoot(to_be_removed->left);
+					delete to_be_removed;
+				}
+			}
+			else if(to_be_removed->left == NULL) {
+				if(p != NULL) {
+					if(side == left)
+						p->setleftChild(to_be_removed->right);
+					else
+						p->setrightChild(to_be_removed->right);
+
+					delete to_be_removed;
+					p->updateHeight();
+					balanceAtNode(p);
+				}
+				else {
+					setRoot(to_be_removed->right);
+					delete to_be_removed;
+				}
+			}
+			else {
+				if(bal > 0) {
+					if(to_be_removed->left->right == NULL) {
+						replacement = to_be_removed->left;
+						replacement->setrightChild(to_be_removed->right);
+						temp_node = replacement;
+					}
+					else {
+						replacement = to_be_removed->left->right;
+						while(replacement->right != NULL) {
+							replacement = replacement->right;
+						}
+						replacement_parent = replacement->parent;
+						replacement_parent->setrightChild(replacement->left);
+						temp_node = replacement_parent;
+						replacement->setleftChild(to_be_removed->left);
+						replacement->setrightChild(to_be_removed->right);
+					}
+				}
+				else {
+					if(to_be_removed->right->left == NULL) {
+						replacement = to_be_removed->right;
+						replacement->setleftChild(to_be_removed->left);
+						temp_node = replacement;
+					}
+					else {
+						replacement = to_be_removed->right->left;
+						while(replacement->left != NULL) {
+							replacement = replacement->left;
+						}
+						replacement_parent = replacement->parent;
+						replacement_parent->setleftChild(replacement->right);
+						temp_node = replacement_parent;
+						replacement->setleftChild(to_be_removed->left);
+						replacement->setrightChild(to_be_removed->right);
+					}
+				}               
+				if(p != NULL) {
+					if(side == left)
+						p->setleftChild(replacement);
+					else
+						p->setrightChild(replacement);
+					delete to_be_removed;
+				}
+				else {
+					setRoot(replacement);
+					delete to_be_removed;
+				}
+				balanceAtNode(temp_node);
+			}	
+			cout << "ELEMENT SUCCESSFULLY DELETED" << endl;
+		}
+		
+		int getHeight() {
+			return root->height;
+		}
+		
+		bool successor(int key){
+			Node* temp = findNode(key);
+			int max = findMax();
+			if (temp == NULL)
+				return false;
+			else {
+				if ( temp->right == NULL && temp->left == NULL) {
+					if (temp->data == max) {
+						cout << "MAXIMUM NUMBER NO SUCCESSOR";
+						cout << endl;
+						return true;
+					}
+					while (temp->data <= key)
+						temp = temp->parent;
+					cout << temp->data;
+					cout << endl;
+					return true;
+				}
+				else if( temp->right != NULL){
+					temp = temp->right;
+					while(temp->left != NULL)
+						temp = temp->left;
+				}
+				else {
+					cout << temp->data;
+					cout << endl;
+					return true;
+				}
+			}
+			cout<<temp->data << endl;
+		}
+		
+		int findMin(){
+			Node* temp = root;
+			while (temp->left)
+				temp = temp->left;
+			return temp->data;
+		}
+		
+		int findMax(){
+			Node* temp = root;
+			while (temp->right)
+				temp = temp->right;
+			return temp->data;
+		}
+		
+		bool predecessor(int key){
+			Node* temp = findNode(key);
+			int min = findMin();
+			if (temp == NULL)
+				return false;
+			else {
+				if ( temp->right == NULL && temp->left == NULL) {
+					if (temp->data == min){
+						cout << "MINIMUM NUMBER NO PREDECESSOR";
+						cout << endl;
+						return true;
+					}
+					while (temp->data >= key)
+						temp = temp->parent;
+					cout << temp->data;
+					cout << endl;
+					return true;
+				}
+				else if (temp->left != NULL){
+					temp = temp->left;
+					while(temp->right != NULL)
+						temp = temp->right;
+				}
+				else {
+					cout << temp->data;
+					cout << endl;
+					return true;
+				}
+			}
+			cout << temp->data;
+			cout << endl;
+		}
+		
+        void print(int key){
+			Node* temp = findNode(key);
+			if ( temp->data == key )
+				preorder(temp);
+			else
+				cout << "ELEMENT NOT IN TREE" << endl;
+        }
+		
+		void preorder(Node* this_node) {
+			Node* temp = this_node;
+			if(temp != NULL) {
+				cout << temp->data << " ";
+				if(temp->left)
+					preorder(temp->left);
+				if(temp->right)
+					preorder(temp->right);			
+			}
+		}
+		
+		void range(int key_1, int key_2){
+             Node* temp = root;
+             if (temp != NULL)
+                inorder (temp, key_1, key_2);
+			cout << endl;
+        }
+		
+		void inorder(Node* this_node, int key_1, int key_2) {
+			Node* temp = this_node;
+			if(temp != NULL) {
+                if (temp->data >= key_1 && temp->data <= key_2) {
+				   if(temp->left)
+                       inorder(temp->left, key_1, key_2);
+                   cout << temp->data << " ";
+                   if(temp->right)
+					   inorder(temp->right, key_1, key_2);         
+                }
+                else if (temp->data <= key_1) {
+                     inorder(temp->right, key_1, key_2);
+				}
+				else if (temp->data >= key_2) {
+					inorder(temp->left, key_1, key_2);
+				}
+			}
+		}
+};
+	
+	
+		struct AdjListNode {
+			int dest;
+			int color;
+			struct AdjListNode* next;
+		};
+		struct AdjList {
+			struct AdjListNode *head;
+		};
+		struct AdjListNode* newAdjListNode(int dest) {
+			struct AdjListNode* newNode = (struct AdjListNode*) malloc(sizeof(struct AdjListNode));
+			newNode->dest = dest;
+			newNode->next = NULL;
+			return newNode;
+		}
+	
+		int V;
+		int E;
+		struct AdjList* array;
+		AVLTree* tree;
+		
+		void createGraph(int v, int e) {
+			V = v;
+			E = e;
+ 
+			array = (struct AdjList*) malloc(V * sizeof(struct AdjList));
+			tree = new AVLTree();
+			
+			int i;
+			for (i = 1; i < V+1; ++i)
+				array[i].head = NULL;
+		}
+		
+		void addEdge(int src, int dest) {
+			struct AdjListNode* newNode = newAdjListNode(dest);
+			newNode->next = array[src].head;
+			array[src].head = newNode;
+		 
+			newNode = newAdjListNode(src);
+			newNode->next = array[dest].head;
+			array[dest].head = newNode;
+		}
+		
+		void graphStat(){
+			float degree;
+			degree = ((float)E/(float)V);
+			degree = degree*2.0;
+			cout << "AVERAGE DEGREE: " << std::setprecision(3) << degree << endl;
+			int diameter;
+			if (E > 2*V)
+				diameter = sqrt(E);
+			else
+				diameter = sqrt(V);
+			cout << "DIAMETER: " << diameter << endl;
+		}
+		
+		bool isFull(int array[]){
+			for (int i = 0; i <= V; ++i){
+				if (array[i] == 0)
+					return false;
+			}
+			return true;
+		}
+
+		int isPresent(int array[], int key, int node_id){
+			int i = 0;
+			while (i < V) {
+				if (array[i] == key || array[i] == node_id)
+					return 1;
+				++i;
+			}
+			return 0;
+		}
+		
+		void printArray(int array[]){
+			int i = 0;
+			cout << endl << "array" << endl;
+			for (int j = 0; j<V; ++j) {
+				cout << array[j];
+			}
+			cout << endl;
+		}
+
+		void BFSandPrint(int node_id, int distance){
+			int iterator = 0;
+			int que = 0;
+			int searchArray [V];
+			int queArray [V];
+
+			
+			tree = new AVLTree();
+			for (int i=0; i<V; ++i){
+				searchArray[i] = 0;
+			}	
+			for (int i=0; i<V; ++i){
+				queArray[i] = 0;
+			}
+
+			searchArray[iterator] = node_id;
+			tree->insert(node_id);
+			iterator++;
+			struct AdjListNode* pCrawl = array[node_id].head;
+
+			int range = 0;
+			int cont = 0;
+			
+			while (!isFull(searchArray)) {
+				if (range == distance*2)
+					break;
+
+				while (pCrawl){
+					if (isPresent(queArray, pCrawl->dest, node_id) == 0 && pCrawl->dest != node_id){
+						queArray[que] = pCrawl->dest;
+						que++;
+					}
+					else
+						cout << "";
+					pCrawl = pCrawl->next;
+				}
+
+				pCrawl = array[queArray[cont]].head;
+				cont++;
+				searchArray[iterator] = queArray[iterator-1];
+				tree->insert(queArray[iterator-1]);
+				iterator++;
+				range++;
+			}
+		}
+		
+};
+
+
+int main()
+{
+    Graph graph;
+    
+    //ifstream fin;
+    //fin.open("PA2INPUT1.txt");
+
+  
+    string init = "";
+  
+	//while (!fin.eof()) {
+		string n,m,a,b;
+		string cmd;
+		
+		cin >> n >> m;
+
+		int aa, bb, nn, mm;
+		nn = atoi(n.c_str());
+		mm = atoi(m.c_str());
+		graph.createGraph(nn, mm);
+		
+		for (int i=0;i<mm;i++) {
+			cin >> a >> b;
+			aa = atoi(a.c_str());
+			bb = atoi(b.c_str());
+			graph.addEdge(aa, bb);
+		}
+
+		while ( cin >> cmd ) {
+			if ( cmd == "GRAPHSTAT" ){
+				graph.graphStat();
+			}
+			if ( cmd == "BFSANDINSERT" ) {
+				cin >> a >> b;
+				aa = atoi(a.c_str());
+				bb = atoi(b.c_str());
+				graph.BFSandPrint(aa, bb);
+			}
+			if ( cmd == "PREORDER" ) {
+				cin >> a;
+				aa = atoi(a.c_str());
+				graph.tree->print(aa);
+				cout << endl;
+			}
+			if ( cmd == "INSERT" ) {
+				cin >> a;
+				aa = atoi(a.c_str());
+				graph.tree->insert(aa);
+			}
+			if ( cmd == "REMOVE" ) {
+				cin >> a;
+				aa = atoi(a.c_str());
+				graph.tree->remove(aa);
+			}
+			if ( cmd == "RANGE" ) {
+				cin >> a >> b;
+				aa = atoi(a.c_str());
+				bb = atoi(b.c_str());
+				graph.tree->range(aa, bb);
+			}
+			if ( cmd == "SUCCESSOR" ) {
+				cin >> a;
+				aa = atoi(a.c_str());
+				graph.tree->successor(aa);
+			}
+			if ( cmd == "PREDECESSOR" ) {
+				cin >> a;
+				aa = atoi(a.c_str());
+				graph.tree->predecessor(aa);
+			}
+		}
+	//}
+	return 0;
+}
+
+//AVL source http://en.wikibooks.org/wiki/Algorithm_Implementation/Trees/AVL_tree
