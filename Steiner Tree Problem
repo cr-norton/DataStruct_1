@@ -1,0 +1,782 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <limits.h>
+#include <iostream>
+#include <cstdlib>
+#include <iostream>
+#include <sstream>
+#include <math.h> 
+#include <stdio.h>
+#include <cmath>
+#include <fstream>
+#include <cstring>
+#include <iomanip> 
+using namespace std;
+
+int treeIndex = 0;
+int alg_2Index = 0;
+int groupsUnreached;
+int cIndex = 0;
+
+int lexIndex = 0;
+int lexIndex2 = 0;
+
+struct graphNode {
+    int id;
+    int weight;
+    struct graphNode* next;
+};
+
+struct graphList {
+    struct graphNode *head;
+};
+
+struct Graph {
+    int vertices;
+    int edges;
+    int groups;
+    int algorithm;
+    struct graphList* array;
+	int *dist;
+	int *pie;
+	int *tree;
+	int *alg_2Nodes;
+	int *alg_2;
+	int *groupC;
+	bool *visited;
+	bool *groupsVisited;
+};
+
+struct groupListNode {
+    int id;
+    struct groupListNode* next;
+};
+
+struct groupList {
+    struct groupListNode *head;
+};
+
+struct Group {
+    struct groupList* array;
+};
+
+struct Group* createGroup( int amount ) {
+    struct Group* group = (struct Group*) malloc(sizeof(struct Group));
+    
+	group->array = (struct groupList*) malloc(amount * sizeof(struct groupList));
+
+	for (int i = 0; i < amount; ++i)
+		group->array[i].head = NULL;
+ 
+    return group;
+}
+
+struct graphNode* newgraphNode(int id, int weight){
+    struct graphNode* newNode = (struct graphNode*) malloc(sizeof(struct graphNode));
+    newNode->id = id;
+    newNode->weight = weight;
+    newNode->next = NULL;
+    return newNode;
+}
+
+struct groupListNode* groupListNode(int id){
+    struct groupListNode* newNode = (struct groupListNode*) malloc(sizeof(struct groupListNode));
+    newNode->id = id;
+    newNode->next = NULL;
+    return newNode;
+}
+
+struct Graph* createGraph(int V, int E, int K, int I){
+	struct Graph* graph = (struct Graph*) malloc(sizeof(struct Graph));
+
+	graph->vertices = V;
+	graph->edges = E;
+	graph->groups = K;
+	graph->algorithm = I;
+
+    graph->array = (struct graphList*) malloc(V * sizeof(struct graphList));
+
+	for (int i = 0; i < V; ++i)
+		graph->array[i].head = NULL;
+
+	return graph;
+}
+
+void addEdge(struct Graph* graph, int src, int dest, int weight){
+    struct graphNode* newNode = newgraphNode(dest, weight);
+    newNode->next = graph->array[src].head;
+    graph->array[src].head = newNode;
+ 
+    newNode = newgraphNode(src, weight);
+    newNode->next = graph->array[dest].head;
+    graph->array[dest].head = newNode;
+}
+
+void addNode(struct Group* group, int gx, int value){
+    struct groupListNode* newNode = groupListNode(value);
+    newNode->next = group->array[gx].head;
+    group->array[gx].head = newNode;
+}
+
+void setArrays(struct Graph* graph){
+	graph->dist = new int[graph->vertices];
+	graph->pie = new int[graph->vertices];
+	graph->tree = new int[graph->vertices];
+	graph->alg_2Nodes = new int[graph->vertices];
+	graph->alg_2 = new int[graph->vertices];
+	graph->groupC = new int[graph->vertices];
+	graph->visited = new bool[graph->vertices];
+	graph->groupsVisited = new bool[graph->groups];
+}
+
+bool isInTree(struct Graph* graph, int add ) {
+    for ( int i = 0; i < treeIndex; i++ ){
+        if ( graph->tree[i] == add )
+            return true;
+    }
+    return false;
+}
+
+void clearArray(struct Graph* graph){
+    for ( int i = 0; i < graph->vertices; i++ ) {
+        graph->alg_2Nodes[i] = 0;
+    }
+}
+
+void clearCC(struct Graph* graph){
+    for ( int i = 0; i < graph->vertices; i++ ) {
+        graph->groupC[i] = 100000;
+    }
+}
+
+bool notDone(struct Graph* graph) {
+	for (int i=0; i < graph->groups; i++) {
+		if ( graph->groupsVisited[i] == false )
+			return true;
+	}
+	return false;
+}
+
+bool notInTree(struct Graph* graph, int check){
+    for (int i = 0; i<treeIndex; i++) {
+        if ( graph->tree[i] == check)
+            return false;
+    }
+    return true;
+}
+
+int getSmallest(struct Graph* graph){
+    int small = 100000;
+    int index;
+    for (int i = 0; i<graph->vertices; i++) {
+        if ( graph->dist[i] < small && notInTree(graph, i) ){
+            small = graph->dist[i];
+            index = i;
+        }
+    }
+    return index;
+}
+
+void sortArray( int array[], int items ) {
+    int swap;
+    for ( int i = 0; i < ( items - 1 ); i++ ) {
+        for ( int j = 0; j < ( items - i - 1 ); j++ ){
+            if ( array[j] > array[j+1] ) {
+                swap = array[j];
+                array[j] = array[j+1];
+                array[j+1] = swap;
+            }
+        }
+    }
+}
+
+int shortestPath(struct Graph* graph, int source, int destination) {
+	int dij;
+	int z;	
+	int p = 0;
+	
+	struct graphNode* pCrawl;
+	
+	for (int i1=1; i1<=graph->vertices; i1++)
+		graph->pie[i1] = 0;
+    
+    for (int i1=0; i1<graph->vertices; i1++)
+	{
+		graph->dist[i1] = 100000;
+		graph->visited[i1] = false;
+	}
+	
+	graph->dist[source] = 0;
+	int i = source;
+	graph->visited[source] = true;
+	graph->pie[source] = 0;
+	
+	int complete = 0;
+	
+	while ( complete == 0)
+	{
+		int m = 100000;
+		for (int j=0; j<graph->vertices; j++)
+		{
+			if (graph->visited[j] == true)
+				continue;
+			
+			else {
+				pCrawl = graph->array[i].head;
+				
+				while ( pCrawl != NULL ) {
+					if ( pCrawl->id == j)
+						break;
+					else
+						pCrawl = pCrawl->next;
+				}
+				
+				if ( pCrawl == NULL )
+					dij = 100000;
+					
+				else
+					dij = pCrawl->weight;
+				
+				z = dij + graph->dist[i];
+				
+				if (z > 100000)
+					z = 100000;
+				
+				if (z < graph->dist[j] || z == graph->dist[j]){
+					graph->dist[j] = z;
+					graph->pie[j] = i;
+				}
+				
+				if (graph->dist[j] < m ){
+					m = graph->dist[j];
+					p = j;
+				}
+			}
+		}
+		
+		graph->visited[p] = true;
+		i = p;
+		
+		complete = 1;
+		
+		for ( int w = 0; w < graph->vertices; w++ ){
+			if ( graph->visited[w] == false )
+				complete = 0;
+				break;
+		}
+	}
+	return graph->dist[destination];
+}
+
+void print_path(struct Graph* graph, int s, int d){
+	if ( d == 0 )
+		return;
+	
+	if ( d == s ) {
+		if ( isInTree(graph, s) == false ) {
+			graph->tree[treeIndex] = s;
+			treeIndex++;
+		}
+	}
+	
+	else {
+		print_path(graph, s, graph->pie[d]);
+		if ( isInTree(graph, d) == false ) {
+			graph->tree[treeIndex] = d;
+			treeIndex++;
+		}
+	}		
+}
+
+void print_path_2(struct Graph* graph, struct Group* path, int s, int d, int groupID){
+	if ( d == 0 )
+		return;
+	if ( d == s ) {
+		addNode(path, groupID, s);
+	}
+	
+	else {
+		print_path_2(graph, path, s, graph->pie[d], groupID);
+		addNode(path, groupID, d);
+	}		
+}
+
+void get_path(struct Graph* graph, int s, int d, int* array){
+	if ( d == 0 )
+		return;
+	
+	if ( d == s ) {
+		array[lexIndex] = s;
+		lexIndex++;
+	}
+	
+	else {
+		get_path(graph, s, graph->pie[d], array);
+		array[lexIndex] = d;
+		lexIndex++;
+	}		
+}
+
+void get_path2(struct Graph* graph, int s, int d, int* array){
+
+	if ( d == 0 )
+		return;
+	
+	if ( d == s ) {
+		array[lexIndex2] = s;
+		lexIndex2++;
+	}
+	
+	else {
+		get_path2(graph, s, graph->pie[d], array);
+		array[lexIndex2] = d;
+		lexIndex2++;
+	}		
+}
+
+bool makeChange(int* array1, int* array2){
+	int this_1 = lexIndex;
+	int this_2 = lexIndex2;
+	
+	while ( array1[this_1] == array2[this_2] ) {
+		this_1--;
+		this_2--;
+	}
+	
+	if ( array1[this_1] < array2[this_2] )
+		return false;
+	
+	else
+		return true;
+}
+
+void add_path(struct Graph* graph, int s, int d ) {
+	if ( d == 0 )
+		return;
+		
+	if ( d == s ) {
+            graph->alg_2Nodes[alg_2Index] = s;
+            alg_2Index++;	
+	}
+	
+	else {
+            add_path(graph, s, graph->pie[d]);
+            graph->alg_2Nodes[alg_2Index] = d;
+            alg_2Index++;	
+	}		
+}
+
+bool isGroupReachedInPath( struct Group *groups, struct Graph* graph, int groupIndex, int vertex ){
+    struct groupListNode* pCrawl = groups->array[groupIndex].head;
+    while ( pCrawl != NULL ) {
+        if ( pCrawl->id == vertex && graph->groupsVisited[groupIndex] == false ) {
+            return true;
+        }
+        pCrawl = pCrawl->next;
+    }
+    return false;
+}
+
+bool isGroupReachedInPath_2( struct Group *groups, struct Graph* graph, int groupIndex, int vertex ){
+    struct groupListNode* pCrawl = groups->array[groupIndex].head;
+    while ( pCrawl != NULL ) {
+        if ( pCrawl->id == vertex && graph->groupsVisited[groupIndex] == false ) {
+            graph->groupC[cIndex] = groupIndex;
+            cIndex++;
+            return true;
+        }
+        pCrawl = pCrawl->next;
+    }
+    return false;
+}
+
+void get_number( struct Group *groups, struct Graph* graph, int src, int dest ) {
+    alg_2Index = 0;
+    clearArray(graph);
+    add_path(graph, src, dest);
+    
+    for ( int i = 0; i < graph->groups; i++ ) {
+        if ( graph->groupsVisited[i] == false ) {
+            for ( int k = 0; k < alg_2Index; k++ ) {
+                if ( isGroupReachedInPath( groups, graph, i, graph->alg_2Nodes[k] ) ) {
+                    groupsUnreached++;
+                    break;
+                }
+            }
+        }
+    }
+}
+
+void get_number_2( struct Group *groups, struct Graph* graph, int src, int dest ) {
+    alg_2Index = 0;
+    clearArray(graph);
+    add_path(graph, src, dest);
+    
+    for ( int i = 1; i < graph->groups; i++ ) {
+        if ( graph->groupsVisited[i] == false ) {
+            for ( int k = 0; k < alg_2Index; k++ ) {
+                if ( isGroupReachedInPath_2( groups, graph, i, graph->alg_2Nodes[k] ) ) {
+                    groupsUnreached++;
+                    break;
+                }
+            }
+        }
+    }
+}
+
+void compute_alg1( struct Graph* graph, struct Group *groups ) {
+    
+    //Mark all groups as not reached
+    for (int i=0; i < graph->groups; i++)
+        graph->groupsVisited[i] = false;
+		
+    //To search through the groups
+    struct groupListNode* pCrawl;
+	
+    //Handle the initial group
+    graph->groupsVisited[0] = true;
+    graph->tree[treeIndex] = groups->array[treeIndex].head->id;
+    treeIndex++;
+    printf("0\n");
+	
+    //Helper arrays
+    int groupShortestPathVertex[graph->groups];
+    int groupShortestPathDistance[graph->groups];
+	int groupSourceVertex[graph->groups];
+	int path_1[graph->vertices];
+	int path_2[graph->vertices];
+	
+    //Set all paths to not computed
+    for ( int i = 0; i < graph->groups; i++ ) {
+        groupShortestPathVertex[i] = 100000;
+        groupShortestPathDistance[i] = 100000;
+		groupSourceVertex[i] = 100000;
+		path_1[i] = 0;
+		path_2[i] = 0;
+    }
+	
+    //Helper variables
+    int tempVertex;
+    int tempDistance;
+    int bestDistance;
+    int bestPath;
+	int bestSource;
+    int fromGroup;
+    int totalDistance = 0;
+	int temp;
+	(void) temp;
+	
+    //While at least one group hasn't been reached
+    while ( notDone(graph) ){
+			
+		//For each group that has not been reached
+		for ( int i = 1; i < graph->groups; i++ ) {
+			if ( graph->groupsVisited[i] == false ) {
+				
+				//For each vertex in T
+				for ( int k=0; k<treeIndex; k++){
+
+					//Get shortest path from vertex in T to every vertex in the Graph
+					temp = shortestPath(graph, graph->tree[k], graph->vertices);
+
+					//Get group_i
+					pCrawl = groups->array[i].head;
+					
+					//While there are still elements in the group
+					while ( pCrawl != NULL ) {
+
+						//Get the vertex and distance
+						tempVertex = pCrawl->id;
+						tempDistance = graph->dist[tempVertex];
+						
+						if ( tempDistance < groupShortestPathDistance[i] || tempDistance == groupShortestPathDistance[i]) {
+							if ( tempDistance == groupShortestPathDistance[i] ) {
+								for ( int yyy = 0; yyy < lexIndex2; yyy++)
+									path_2[yyy] = 0;
+								lexIndex2 = 0;						
+								get_path2(graph, graph->tree[k], tempVertex, path_2);
+								if ( makeChange(path_1, path_2) ) {
+									groupShortestPathDistance[i] = tempDistance;
+									groupShortestPathVertex[i] = tempVertex;
+									groupSourceVertex[i] = graph->tree[k];
+									*path_1 = *path_2;
+								}
+							}
+							else {
+								groupShortestPathDistance[i] = tempDistance;
+								groupShortestPathVertex[i] = tempVertex;
+								groupSourceVertex[i] = graph->tree[k];
+								for ( int zzz = 0; zzz < lexIndex; zzz++)
+									path_1[zzz] = 0;
+								lexIndex = 0;
+								get_path(graph, graph->tree[k], tempVertex, path_1);
+							}
+						}
+						//Advanced to next vertex in group
+						pCrawl = pCrawl->next;
+					}
+				}
+			}
+		}
+		
+		//Set to help compute
+		bestDistance = 100000;
+		bestPath = 100000;
+		fromGroup = 100000;
+		bestSource = 100000;
+		
+		//For each group not visited, find the best overall path
+		for ( int i = 1; i < graph->groups; i++ ) {
+			if ( graph->groupsVisited[i] == false ) {
+				if ( groupShortestPathDistance[i] < bestDistance) {
+					bestPath = groupShortestPathVertex[i];
+					fromGroup = i;
+					bestDistance = groupShortestPathDistance[i];
+					bestSource = groupSourceVertex[i];
+				}
+			}
+		}
+	
+		//Print the group
+		printf("%d\n", fromGroup);
+		
+		//Mark the group with the best path as visited
+		graph->groupsVisited[fromGroup] = true;
+
+		//Increment total distance traversed
+		totalDistance = totalDistance + bestDistance;
+
+		print_path(graph, bestSource, bestPath);
+	}
+
+    //Sort array T
+    sortArray( graph->tree, treeIndex );
+
+    //Print T
+    for ( int i = 0; i < treeIndex; i++ ) {
+        printf("%d\n", graph->tree[i]);
+    }
+
+    //Print total Distance
+    printf("%d\n", totalDistance);
+
+}
+
+void compute_alg2( struct Graph* graph, struct Group *groups ) {
+
+	struct Group* paths = createGroup(graph->groups);
+
+    //Mark all groups as not reached
+    for (int i=0; i < graph->groups; i++)
+        graph->groupsVisited[i] = false;
+		
+    //To search through the groups
+    struct groupListNode* pCrawl;
+	
+    //Handle the initial group
+    graph->groupsVisited[0] = true;
+    graph->tree[treeIndex] = groups->array[treeIndex].head->id;
+    treeIndex++;
+    printf("0\n");
+	
+    //Helper arrays
+    int groupShortestPathVertex[graph->groups];
+    int groupShortestPathDistance[graph->groups];
+	int groupSourceVertex[graph->groups];
+	int path_1[graph->vertices];
+	int path_2[graph->vertices];
+	
+    //Set all paths to not computed
+    for ( int i = 0; i < graph->groups; i++ ) {
+        groupShortestPathVertex[i] = 100000;
+        groupShortestPathDistance[i] = 100000;
+		groupSourceVertex[i] = 100000;
+		graph->alg_2[i] = 1;
+		path_1[i] = 0;
+		path_2[i] = 0;
+    }
+	
+    //Helper variables
+    int tempVertex;
+    int tempDistance;
+    int bestPath;
+	int bestSource;
+    int totalDistance = 0;
+    int temp;
+	(void) temp;
+    
+	
+    //While at least one group hasn't been reached
+    while ( notDone(graph ) ){
+
+		//For each group that has not been reached
+		for ( int i = 1; i < graph->groups; i++ ) {
+			if ( graph->groupsVisited[i] == false ) {
+				
+				//For each vertex in T
+				for ( int k=0; k<treeIndex; k++){
+					
+					//Get shortest path from vertex in T to every vertex in the Graph
+					temp = shortestPath(graph, graph->tree[k], graph->vertices);
+					
+					//Get group_i
+					pCrawl = groups->array[i].head;
+
+					//While there are still elements in the group
+					while ( pCrawl != NULL ) {
+
+						//Get the vertex and distance
+						tempVertex = pCrawl->id;
+						tempDistance = graph->dist[tempVertex];
+						
+						if ( (tempDistance < groupShortestPathDistance[i] || tempDistance == groupShortestPathDistance[i]) ) {
+							if ( tempDistance == groupShortestPathDistance[i] ) {
+								for ( int yyy = 0; yyy < lexIndex2; yyy++)
+									path_2[yyy] = 0;
+								lexIndex2 = 0;	
+								get_path2(graph, graph->tree[k], tempVertex, path_2);
+								if ( makeChange(path_1, path_2) ) {
+									groupShortestPathDistance[i] = tempDistance;
+									groupShortestPathVertex[i] = tempVertex;
+									groupSourceVertex[i] = graph->tree[k];
+									*path_1 = *path_2;
+									groupsUnreached = 0; 
+									get_number( groups, graph, graph->tree[k], tempVertex );
+									graph->alg_2[i] = groupsUnreached;
+								}
+							}
+							else {
+								groupShortestPathDistance[i] = tempDistance;
+								groupShortestPathVertex[i] = tempVertex;
+								groupSourceVertex[i] = graph->tree[k];
+								for ( int zzz = 0; zzz < lexIndex; zzz++)
+									path_1[zzz] = 0;
+								lexIndex = 0;
+								get_path(graph, graph->tree[k], tempVertex, path_1);
+								groupsUnreached = 0; 
+								get_number( groups, graph, graph->tree[k], tempVertex );
+								graph->alg_2[i] = groupsUnreached;
+							}
+						}
+						//Advanced to next vertex in group
+						pCrawl = pCrawl->next;
+					}
+				}
+			}
+        }
+		
+        //Set to help compute
+        int bestDistance = 100000;
+        float bestRatio = 100000.0000;
+		bestPath = 100000;
+		bestSource = 100000;
+		int bestGroup = 0;
+		
+        //For each group not visited, find the best overall path
+        for ( int i = 1; i < graph->groups; i++ ) {
+            if ( graph->groupsVisited[i] == false ) {
+                if ( ( (float) groupShortestPathDistance[i]/graph->alg_2[i]) < bestRatio ) {
+                    bestPath = groupShortestPathVertex[i];
+                    bestDistance = groupShortestPathDistance[i];
+					bestRatio = (float) groupShortestPathDistance[i]/graph->alg_2[i];
+					bestSource = groupSourceVertex[i];
+					bestGroup = i;
+                }
+            }
+        }
+
+        //Increment total distance traversed
+        totalDistance = totalDistance + bestDistance;
+        
+        //Get the best path and add to T
+        print_path_2(graph, paths, bestSource, bestPath, bestGroup);
+		
+        struct groupListNode* gCrawl;
+		gCrawl = paths->array[bestGroup].head;
+		while ( gCrawl != NULL ) {
+			if ( isInTree(graph, gCrawl->id) == false ) {
+				graph->tree[treeIndex] = gCrawl->id;
+				treeIndex++;
+			}
+			gCrawl = gCrawl->next;
+		}
+		
+        get_number_2( groups, graph, bestSource, bestPath );
+        
+		sortArray( graph->groupC, cIndex );
+		
+        for ( int h = 0; h < cIndex; h++){
+            printf("%d\n", graph->groupC[h]);
+        }
+        
+        for ( int g = 0; g < graph->vertices; g++ ) {
+            if ( graph->groupC[g] < 50000 )
+                graph->groupsVisited[graph->groupC[g]] = true;
+        }
+		
+		cIndex = 0;
+		clearCC(graph);
+		
+    }
+
+    sortArray( graph->tree, treeIndex );
+
+    //Print T
+    for ( int i = 0; i < treeIndex; i++ ) {
+        printf("%d\n", graph->tree[i]);
+    }
+
+    //Print total Distance
+    printf("%d\n", totalDistance);
+
+}
+
+int main() {	
+    string v, e, k, i;
+	string src, dest, weight;
+	
+	string g;
+	
+    cin >> v >> e >> k >> i;
+    
+	int a, b, c, d;
+	
+    a = atoi(v.c_str());
+    b = atoi(e.c_str());
+    c = atoi(k.c_str());
+    d = atoi(i.c_str());
+    
+    struct Graph* graph = createGraph(a, b, c, d);
+    struct Group* group = createGroup(c);
+
+	setArrays(graph);
+    
+	int z = 0;
+	int end = graph->edges;
+	
+	while ( z < end ) {
+        cin >> src >> dest >> weight;
+        a = atoi(src.c_str());
+        b = atoi(dest.c_str());
+        c = atoi(weight.c_str());
+        addEdge(graph, a, b, c);
+		z++;
+    }
+	
+    for (int p=0; p<graph->groups; p++) {
+        cin >> g;
+        a = atoi(g.c_str());
+        for (int j=0; j<a; j++){
+            cin >> g;
+            b = atoi(g.c_str());
+            addNode(group, p, b);
+        }
+    }
+	
+	if ( graph->algorithm == 1)
+		compute_alg1(graph, group);
+	else
+		compute_alg2(graph, group);
+	
+	return 0;	
+}
