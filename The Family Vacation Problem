@@ -1,0 +1,925 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <limits.h>
+#include <iostream>
+#include <cstdlib>
+#include <iostream>
+#include <sstream>
+#include <math.h> 
+#include <stdio.h>
+#include <cmath>
+#include <fstream>
+#include <cstring>
+#include <iomanip> 
+using namespace std;
+
+int tc = 0;
+int ts = 0;
+
+int min(int src1, int src2){
+    if (src1 < src2)
+        return src1;
+    else
+        return src2;
+}
+
+int max(int src1, int src2){
+    if (src1 > src2)
+        return src1;
+    else
+        return src2;
+}
+
+//The first version of the problem, denoted by “min-cost-min-days”
+//the primary objective function is minimize the total cost of the overnight stays
+//the secondary objective function is minimize the number of overnight stays
+void alg_1(int numCities, int numMiles, int C_i[], int D_i[], int parameter, int output){
+    int dist;
+	int unique = 0;
+    int kay[numCities+1];
+	
+    int M_i[numCities+1];
+    M_i[numCities] = 0;
+    
+    for (int i = numCities-1; i >= 1; i--){
+        M_i[i] = 1000000;
+        dist = 0;
+        for (int j = i+1; j <= numCities; j++){
+            dist = dist + D_i[j];
+            if (dist <= numMiles){
+                if (M_i[j] + C_i[j] <= M_i[i]){
+					kay[i] = j;
+                    M_i[i] = min(M_i[i], M_i[j]+C_i[j]);
+                }
+            }
+        }
+    }
+	
+	int distI = 0;
+	int index = 2;
+	int amount = 0;
+	while (distI < numMiles){
+		distI += D_i[index];
+		index++;
+		amount++;
+	}
+	
+	int ex;
+	int test_stays = 0;
+	int test_cost = 0;
+	int temp_stays = 1000000;
+	int temp_cost = 1000000;
+	int temp_correct = 0;
+	
+	for (int www = 1; www <= amount; www++){
+		ex = www;
+		while (ex != numCities){
+			if (ex != 1)
+				test_stays++;
+			test_cost = test_cost + C_i[ex];
+			ex = kay[ex];
+		}
+		if (test_cost <= temp_cost){
+			if (test_cost == temp_cost && test_stays == temp_stays)
+				unique = 1;
+				if (kay[1] == www)
+					unique = 0;
+			else if (test_cost == temp_cost && test_stays < temp_stays){
+				temp_cost = test_cost;
+				temp_stays = test_stays;
+				temp_correct = www;
+			}
+			else if (test_cost < temp_cost){
+				temp_cost = test_cost;
+				temp_stays = test_stays;
+				temp_correct = www;
+			}
+		}
+		test_cost = 0;
+		test_stays = 0;
+	}
+	
+    int z = temp_correct;
+    
+    printf("%d\n", temp_cost);
+    printf("%d\n", temp_stays);
+	
+	if (unique == 0)
+		printf("unique\n");
+	else
+		printf("not unique\n");
+		
+	if (output == 2) {
+		z = temp_correct;
+		while (z != numCities){
+			if (z != numCities && z != 1)
+				printf("%d\n", z);
+			z = kay[z];
+		}
+	}
+	
+	printf("\n");
+	
+	ts += temp_stays;
+	tc += temp_cost;
+	
+}
+
+//The second version of the problem, denoted by “min-days-min-cost”
+//the primary objective function is minimize the total number of overnight stays
+//the secondary objective function is minimize the total cost of the overnight stays
+void alg_2(int numCities, int numMiles, int C_i[], int D_i[], int parameter, int output){
+    int dist;
+	int unique = 0;
+    int kay[numCities+1];
+    
+    for (int i = numCities-1; i >= 1; i--){
+        dist = 0;
+        for (int j = i+1; j <= numCities; j++){
+            dist = dist + D_i[j];
+            if (dist <= numMiles){
+				kay[i] = j;
+            }
+        }
+    }
+	
+	int distI = 0;
+	int index = 2;
+	int amount = 0;
+	while (distI < numMiles){
+		distI += D_i[index];
+		index++;
+		amount++;
+	}
+	
+	int ex;
+	int test_stays = 0;
+	int test_cost = 0;
+	int temp_stays = 1000000;
+	int temp_cost = 1000000;
+	int temp_correct = 0;
+	
+	for (int www = 1; www <= amount; www++){
+		ex = www;
+		while (ex != numCities){
+			if (ex != 1)
+				test_stays++;
+			test_cost = test_cost + C_i[ex];
+			ex = kay[ex];
+		}
+		if (test_stays <= temp_stays){
+			if (test_cost == temp_cost && test_stays == temp_stays)
+				unique = 1;
+				if (kay[1] == www)
+					unique = 0;
+			else if (test_stays == temp_stays && test_cost < temp_cost){
+				temp_cost = test_cost;
+				temp_stays = test_stays;
+				temp_correct = www;
+			}
+			else if (test_stays < temp_stays){
+				temp_cost = test_cost;
+				temp_stays = test_stays;
+				temp_correct = www;
+			}
+		}
+		test_cost = 0;
+		test_stays = 0;
+	}
+	
+    int z = temp_correct;
+    
+    printf("%d\n", temp_cost);
+    printf("%d\n", temp_stays);
+	
+	if (unique == 0)
+		printf("unique\n");
+	else
+		printf("not unique\n");
+		
+	if (output == 2) {
+		z = temp_correct;
+		while (z != numCities){
+			if (z != numCities && z != 1)
+				printf("%d\n", z);
+			z = kay[z];
+		}
+	}
+	
+	printf("\n");
+	
+	ts += temp_stays;
+	tc += temp_cost;
+    
+}
+
+//The third version of the problem, denoted by “at-most-t-days-min-cost”
+//the total number of overnight stays is at most t
+//the primary objective function is minimize the total cost of the overnight stays
+//the secondary objective function is minimize the total number of overnight stays
+//this problem may have zero feasible solutions
+void alg_3(int numCities, int numMiles, int C_i[], int D_i[], int parameter, int output){
+    int dist;
+	int unique = 0;
+    int kay[numCities+1];
+	int kay2[numCities+1];
+	int failure = 1;
+	int M_i[numCities+1];
+    M_i[numCities] = 0;
+    
+    for (int i = numCities-1; i >= 1; i--){
+        dist = 0;
+		M_i[i] = 1000000;
+        for (int j = i+1; j <= numCities; j++){
+            dist = dist + D_i[j];
+            if (dist <= numMiles){
+				kay2[i] = j;
+				if (M_i[j] + C_i[j] <= M_i[i]){
+					kay[i] = j;
+                    M_i[i] = min(M_i[i], M_i[j]+C_i[j]);
+                }
+            }
+        }
+    }
+	
+	int distI = 0;
+	int index = 2;
+	int amount = 0;
+	while (distI < numMiles){
+		distI += D_i[index];
+		index++;
+		amount++;
+	}
+	
+	int ex;
+	int test_stays = 0;
+	int test_cost = 0;
+	int temp_stays = 1000000;
+	int temp_cost = 1000000;
+	int temp_correct = 0;
+	
+	for (int www = 1; www <= amount; www++){
+		ex = www;
+		while (ex != numCities){
+			if (ex != 1)
+				test_stays++;
+			test_cost = test_cost + C_i[ex];
+			ex = kay[ex];
+		}
+		if (test_stays <= parameter)
+			failure = 0;
+		if (test_cost <= test_cost && test_stays <= parameter){
+			if (test_cost == temp_cost && test_stays == temp_stays) {
+				unique = 1;
+				if (kay[1] == www)
+					unique = 0;
+			}
+			else if (test_cost == temp_cost && test_stays < temp_stays){
+				temp_cost = test_cost;
+				temp_stays = test_stays;
+				temp_correct = www;
+			}
+			else if (test_cost < temp_cost){
+				temp_cost = test_cost;
+				temp_stays = test_stays;
+				temp_correct = www;
+			}
+		}
+		test_cost = 0;
+		test_stays = 0;	
+	}
+
+	if (failure != 1) {
+		int z = temp_correct;
+		
+		printf("%d\n", temp_cost);
+		printf("%d\n", temp_stays);
+		
+		if (unique == 0)
+			printf("unique\n");
+		else
+			printf("not unique\n");
+			
+		if (output == 2) {
+			z = temp_correct;
+			while (z != numCities){
+				if (z != numCities && z != 1)
+					printf("%d\n", z);
+				z = kay[z];
+			}
+		}
+		
+		printf("\n");
+		
+		ts += temp_stays;
+		tc += temp_cost;
+	}
+	
+	
+	else {
+		test_stays = 0;
+		test_cost = 0;
+		temp_stays = 1000000;
+		temp_cost = 1000000;
+		temp_correct = 0;
+		
+		for (int www = 1; www <= amount; www++){
+			ex = www;
+			while (ex != numCities){
+				if (ex != 1)
+					test_stays++;
+				test_cost = test_cost + C_i[ex];
+				ex = kay2[ex];
+			}
+			if (temp_stays <= parameter)
+				failure = 0;
+			if (test_cost <= temp_cost && test_stays <= parameter){
+				if (test_cost == temp_cost && test_stays == temp_stays)
+					unique = 1;
+					if (kay2[1] == www)
+						unique = 0;
+				else if (test_stays == temp_stays && test_cost < temp_cost){
+					temp_cost = test_cost;
+					temp_stays = test_stays;
+					temp_correct = www;
+				}
+				else if (test_cost < temp_cost){
+					temp_cost = test_cost;
+					temp_stays = test_stays;
+					temp_correct = www;
+				}
+			}
+			test_cost = 0;
+			test_stays = 0;
+		}
+		
+		if (failure == 1)
+			printf("no solution\n\n");
+	
+		else {
+			int z = temp_correct;
+
+			printf("%d\n", temp_cost);
+			printf("%d\n", temp_stays);
+			
+			if (unique == 0)
+				printf("unique\n");
+			else
+				printf("not unique\n");
+				
+			if (output == 2) {
+				z = temp_correct;
+				while (z != numCities){
+					if (z != numCities && z != 1 && z != 0)
+						printf("%d\n", z);
+					z = kay2[z];
+				}
+			}
+			
+			printf("\n");
+			
+			ts += temp_stays;
+			tc += temp_cost;
+		}		
+	
+	}
+		
+}
+
+//The fourth version of the problem, denoted by “cost-at-most-t-min-days”
+//total cost of the overnight stays is at most t
+//the primary objective function is minimize the number of overnight stays
+//the secondary objective function is minimize the total cost of the overnight stays
+//this problem may have zero feasible solutions
+void alg_4(int numCities, int numMiles, int C_i[], int D_i[], int parameter, int output){
+    int dist;
+	int unique = 0;
+    int kay[numCities+1];
+	int kay2[numCities+1];
+	int failure = 1;
+	int M_i[numCities+1];
+    M_i[numCities] = 0;
+    
+    for (int i = numCities-1; i >= 1; i--){
+        dist = 0;
+		M_i[i] = 1000000;
+        for (int j = i+1; j <= numCities; j++){
+            dist = dist + D_i[j];
+            if (dist <= numMiles){
+				kay[i] = j;
+				if (M_i[j] + C_i[j] <= M_i[i]){
+					kay2[i] = j;
+                    M_i[i] = min(M_i[i], M_i[j]+C_i[j]);
+                }
+            }
+        }
+    }
+	
+	int distI = 0;
+	int index = 2;
+	int amount = 0;
+	while (distI < numMiles){
+		distI += D_i[index];
+		index++;
+		amount++;
+	}
+	
+	int ex;
+	int test_stays = 0;
+	int test_cost = 0;
+	int temp_stays = 1000000;
+	int temp_cost = 1000000;
+	int temp_correct = 0;
+	
+	for (int www = 1; www <= amount; www++){
+		ex = www;
+		while (ex != numCities){
+			if (ex != 1)
+				test_stays++;
+			test_cost = test_cost + C_i[ex];
+			ex = kay[ex];
+		}
+		if (test_cost <= parameter)
+			failure = 0;
+		if (test_stays <= temp_stays && test_cost <= parameter){
+			if (test_cost == temp_cost && test_stays == temp_stays)
+				unique = 1;
+				if (kay[1] == www)
+					unique = 0;
+			else if (test_stays == temp_stays && test_cost < temp_cost){
+				temp_cost = test_cost;
+				temp_stays = test_stays;
+				temp_correct = www;
+			}
+			else if (test_stays < temp_stays){
+				temp_cost = test_cost;
+				temp_stays = test_stays;
+				temp_correct = www;
+			}
+		}
+		test_cost = 0;
+		test_stays = 0;	
+	}
+
+	if (failure != 1) {
+		int z = temp_correct;
+		
+		printf("%d\n", temp_cost);
+		printf("%d\n", temp_stays);
+		
+		if (unique == 0)
+			printf("unique\n");
+		else
+			printf("not unique\n");
+			
+		if (output == 2) {
+			z = temp_correct;
+			while (z != numCities){
+				if (z != numCities && z != 1)
+					printf("%d\n", z);
+				z = kay[z];
+			}
+		}
+		
+		printf("\n");
+		
+		ts += temp_stays;
+		tc += temp_cost;
+	}
+	
+	
+	else {
+		test_stays = 0;
+		test_cost = 0;
+		temp_stays = 1000000;
+		temp_cost = 1000000;
+		temp_correct = 0;
+		
+		for (int www = 1; www <= amount; www++){
+			ex = www;
+			while (ex != numCities){
+				if (ex != 1)
+					test_stays++;
+				test_cost = test_cost + C_i[ex];
+				ex = kay2[ex];
+			}
+			if (test_cost <= parameter)
+				failure = 0;
+			if (test_cost <= temp_cost && test_cost <= parameter){
+				if (test_cost == temp_cost && test_stays == temp_stays)
+					unique = 1;
+					if (kay2[1] == www)
+						unique = 0;
+				else if (test_cost == temp_cost && test_stays < temp_stays){
+					temp_cost = test_cost;
+					temp_stays = test_stays;
+					temp_correct = www;
+				}
+				else if (test_cost < temp_cost){
+					temp_cost = test_cost;
+					temp_stays = test_stays;
+					temp_correct = www;
+				}
+			}
+			test_cost = 0;
+			test_stays = 0;
+		}
+		
+		if (failure == 1)
+			printf("no solution\n\n");
+	
+		else {
+			int z = temp_correct;
+
+			printf("%d\n", temp_cost);
+			printf("%d\n", temp_stays);
+			
+			if (unique == 0)
+				printf("unique\n");
+			else
+				printf("not unique\n");
+				
+			if (output == 2) {
+				z = temp_correct;
+				while (z != numCities){
+					if (z != numCities && z != 1 && z != 0)
+						printf("%d\n", z);
+					z = kay2[z];
+				}
+			}
+			
+			printf("\n");
+			
+			ts += temp_stays;
+			tc += temp_cost;
+		}		
+	
+	}
+}
+
+//The fifth version of the problem, denoted by “at-most-t-days-max-cost”
+//the total number of overnight stays is at most t
+//the primary objective function is maximize the total cost of the overnight stays
+//the secondary objective function is minimize the total number of overnight stays
+//this problem may have zero feasible solutions
+void alg_5(int numCities, int numMiles, int C_i[], int D_i[], int parameter, int output){
+    int dist;
+	int unique = 0;
+    int kay[numCities+1];
+	int kay2[numCities+1];
+	
+    int M_i[numCities+1];
+    M_i[numCities] = 0;
+	
+	int thisCost;
+	int stopPoint = 1000000;
+	int failure = 0;
+    
+    for (int i = numCities-1; i >= 1; i--){
+        M_i[i] = 0;
+        dist = 0;
+        for (int j = i+1; j <= numCities; j++){
+            dist = dist + D_i[j];
+            if (dist <= numMiles){
+				kay2[i] = j;
+                if (C_i[j] >= M_i[i]){
+					kay[i] = j;
+                    thisCost = C_i[j];
+					M_i[i] = thisCost;
+                }
+            }
+        }
+		thisCost = 0;
+    }
+	
+	int distI = 0;
+	int index = 2;
+	int amount = 0;
+	while (distI < numMiles){
+		distI += D_i[index];
+		index++;
+		amount++;
+	}
+	
+	int ex;
+	int test_stays = 0;
+	int test_cost = 0;
+	int temp_stays = 1000000;
+	int temp_cost = 0;
+	int temp_correct = 0;
+	
+	for (int www = 1; www <= amount; www++){
+		ex = www;
+		while (ex < numCities){
+			int thisDistance = 0;
+			int temprun = ex;
+			int secondrun;
+			
+			if (ex != 1)
+				test_stays++;
+				
+			test_cost = test_cost + C_i[ex];
+			
+			if (test_stays == parameter){
+				thisDistance = 0;
+				temprun = ex;
+				secondrun = ex;
+				while (temprun < numCities){
+					thisDistance == thisDistance + D_i[kay[ex]];
+					temprun = kay[temprun];
+				}
+				if (thisDistance < numMiles){
+					if (secondrun < stopPoint)
+						stopPoint = secondrun;
+					break;
+				}
+				else {
+					test_stays = parameter*2;
+					break;
+				}
+			}
+			ex = kay[ex];
+		}
+		
+		if (test_stays <= parameter)
+			failure = 1;
+		
+		if (test_cost >= temp_cost && test_stays <= parameter){
+			if (test_cost == temp_cost && test_stays == temp_stays){
+				unique = 1;
+				if (kay[1] == www)
+					unique = 0;
+				temp_cost = test_cost;
+				temp_stays = test_stays;
+				temp_correct = www;
+			}
+			else if (test_cost == temp_cost && test_stays < temp_stays){
+				temp_cost = test_cost;
+				temp_stays = test_stays;
+				temp_correct = www;	
+			}
+			else if (test_cost > temp_cost){
+				temp_cost = test_cost;
+				temp_stays = test_stays;
+				temp_correct = www;
+			}
+		}
+		test_cost = 0;
+		test_stays = 0;
+	}
+	
+	if (failure == 1){
+		int z = temp_correct;
+		
+		printf("%d\n", temp_cost);
+		printf("%d\n", temp_stays);
+		
+		if (unique == 0)
+			printf("unique\n");
+		else
+			printf("not unique\n");
+			
+		if (output == 2) {
+			z = temp_correct;
+			while (z != numCities){
+				if (z != numCities && z <= stopPoint){
+					 if (stopPoint != 1000000)
+						printf("%d\n", z);
+				}
+				z = kay[z];
+			}
+		}
+		
+		printf("\n");
+	}
+	
+	
+	else {
+		for (int www = 1; www <= amount; www++){
+			ex = www;
+			while (ex != numCities){
+				if (ex != 1)
+					test_stays++;
+				test_cost = test_cost + C_i[ex];
+				ex = kay2[ex];
+			}
+			if ( test_stays <= parameter)
+				failure = 1;
+			if (test_stays <= temp_stays && test_stays <= parameter){
+				if (test_cost == temp_cost && test_stays == temp_stays)
+					unique = 1;
+					if (kay2[1] == www)
+						unique = 0;
+				else if (test_stays == temp_stays && test_cost > temp_cost){
+					temp_cost = test_cost;
+					temp_stays = test_stays;
+					temp_correct = www;
+				}
+				else if (test_stays < temp_stays){
+					temp_cost = test_cost;
+					temp_stays = test_stays;
+					temp_correct = www;
+				}
+			}
+			test_cost = 0;
+			test_stays = 0;
+		}
+		
+		if (failure == 1){
+			int z = temp_correct;
+		
+			printf("%d\n", temp_cost);
+			printf("%d\n", temp_stays);
+			
+			if (unique == 0)
+				printf("unique\n");
+			else
+				printf("not unique\n");
+				
+			if (output == 2) {
+				z = temp_correct;
+				while (z != numCities){
+					if (z != numCities && z != 1)
+						printf("%d\n", z);
+					z = kay2[z];
+				}
+			}
+			printf("\n");
+		}
+		
+		else
+			printf("no solution\n\n");
+	}
+	
+	ts += temp_stays;
+	tc += temp_cost;
+}
+
+void alg_6(int numCities, int numMiles, int C_i[], int D_i[]){
+    int cost = 1000000;
+    int dist = 0;
+    int numStays = 0;
+    
+    int M_i[numCities+1];
+    M_i[numCities] = 0;
+    
+    for (int i = numCities-1; i >= 1; i--){
+        M_i[i] = 1000000;
+        dist = 0;
+        for (int j = i+1; j <= numCities; j++){
+            dist = dist + D_i[j];
+            if (dist <= numMiles){
+                if (M_i[j] + C_i[j] < M_i[i])
+                    M_i[i] = min(M_i[i], M_i[j]+C_i[j]);
+            }
+        }
+    }    
+    
+    dist = 0;
+    
+    int k = 1;
+    for (int j = k+1; j <= numCities; j++){
+        dist = dist + D_i[j];
+        if (dist <= numMiles){
+            cost = min(cost, M_i[j]+C_i[j]);
+        }
+    }
+	
+	int z = 1;
+	while (z != numCities){
+		for (int w = z+1; w <= numCities; w++){
+			if (M_i[z] == M_i[w] + C_i[w]) {
+				z = w;
+				numStays++;
+			}
+		
+		}
+	}
+    
+    printf("%d\n", cost);
+    printf("%d\n\n", numStays-1);
+	ts += numStays-1;
+	tc += cost;
+}
+
+void alg_7(int numCities, int numMiles, int C_i[], int D_i[]){
+    int dist = 0;
+    int numStays = 0;
+    
+    int M_i[numCities+1];
+    M_i[numCities] = 0;
+    
+    for (int i = numCities-1; i >= 1; i--){
+        M_i[i] = 1000000;
+        dist = 0;
+        for (int j = i+1; j <= numCities; j++){
+            dist = dist + D_i[j];
+            if (dist <= numMiles)
+                M_i[i] = min(M_i[i], M_i[j] + C_i[j]);
+        }
+    }
+    
+	int z = 1;
+	while (z != numCities){
+		for (int w = z+1; w <= numCities; w++){
+			if (M_i[z] == M_i[w] + C_i[w]) {
+				z = w;
+				numStays++;
+			}
+		
+		}
+	}
+    
+    printf("%d\n", M_i[1]);
+    printf("%d\n\n", numStays-1);
+	ts += numStays-1;
+	tc += M_i[1];
+}
+
+void alg_8(int numCities, int numMiles, int C_i[], int D_i[]){
+    int dist;
+    int kay[numCities];
+    
+    int M_i[numCities+1];
+    M_i[numCities] = 0;
+    
+    for (int i = numCities-1; i >= 1; i--){
+        M_i[i] = 1000000;
+        dist = 0;
+        for (int j = i+1; j <= numCities; j++){
+            dist = dist + D_i[j];
+            if (dist <= numMiles){
+                if (M_i[j] + C_i[j] < M_i[i]){
+                    kay[i] = j;
+                    M_i[i] = min(M_i[i], M_i[j]+C_i[j]);
+                }
+            }
+        }
+    }
+    
+    int z = 1;
+    int stays = 0;
+    int cost = 0;
+    
+    while (z != numCities){
+		stays++;
+		cost = cost + C_i[kay[z]];
+		z = kay[z];
+    }
+    
+    printf("%d\n", cost);
+    printf("%d\n\n", stays-1);
+	ts += stays-1;
+	tc += cost;
+    
+}
+
+int main() {	
+    string a, b, c, d, e, f, g, h;
+    int method, output, numCities, numMiles, parameter, times, distance, cost;
+    
+    cin >> a >> b >> c >> d >> e;
+	
+    method = atoi(a.c_str());
+    output = atoi(b.c_str());
+    numCities = atoi(c.c_str());
+    numMiles = atoi(d.c_str());
+    parameter = atoi(e.c_str());
+    
+    cin >> f;
+    times = atoi(f.c_str());
+    
+	for ( int k = 0; k < times; k++){
+		int D_i[numCities+1];
+		int C_i[numCities+1];
+
+		for (int i = 1; i <= numCities; i++){
+			cin >> g >> h;
+			distance = atoi(g.c_str());
+			cost = atoi(h.c_str());
+			D_i[i] = distance;
+			C_i[i] = cost;
+		}
+		
+		if (method == 1)
+			alg_1(numCities, numMiles, C_i, D_i, parameter, output);
+		else if (method == 2)
+			alg_2(numCities, numMiles, C_i, D_i, parameter, output);
+		else if (method == 3)    
+			alg_3(numCities, numMiles, C_i, D_i, parameter, output);
+		else if (method == 4)
+			alg_4(numCities, numMiles, C_i, D_i, parameter, output);
+		else if (method == 5)
+			alg_5(numCities, numMiles, C_i, D_i, parameter, output);
+		else if (method == 6)
+			alg_6(numCities, numMiles, C_i, D_i);
+		else if (method == 7)
+			alg_7(numCities, numMiles, C_i, D_i);
+		else if (method == 8)    
+			alg_8(numCities, numMiles, C_i, D_i);
+	}
+	printf("%d\n", tc);
+	printf("%d\n", ts);	
+
+    return 0;	
+}
